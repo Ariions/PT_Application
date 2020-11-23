@@ -21,7 +21,7 @@ public class Tile : MonoBehaviour
         public int y;
     }
 
-
+    public int score;
     public Coordinates coordinates;
     public string tileName;
     public bool specialVersion = false;
@@ -36,9 +36,46 @@ public class Tile : MonoBehaviour
         level = 0;
     }
 
-    public void Upgrade()
+    public void Upgrade() // upgrade and upgrade rules
     {
-        level++;
+        if(tileType == Type.Wood && level < 4)
+        {
+            level++;
+        }
+        if (tileType == Type.Holy)
+        {
+            if (level < 2)
+            {
+                level++;
+            }
+            else
+            {
+                tileType = Type.Box;
+                level = 0;
+            }
+        }
+        if (tileType == Type.Bear)
+        {
+            tileType = Type.Holy;
+            level = 0;
+        }
+        if (tileType == Type.Crystal && level >= 1)
+        {
+            if (level < 1)
+            {
+                level++;
+            }
+            else
+            {
+                tileType = Type.Box;
+                level = 0;
+            }
+        }
+        if (tileType == Type.Box && level <1)
+        {
+            tileType = Type.Box;
+            level++;
+        }
     }
 
     public bool isEmpty()

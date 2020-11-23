@@ -3,13 +3,12 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+
 public class SpiteManager : MonoBehaviour
 {
-    /// <summary>
-    ///  ideally this all would and should be just sprite references but as  i dont have time to edit art most of art are created from multiple sprites
-    /// </summary>
-    /// 
     string title;
+    public int totalScore = 0;
+    int scoreAmount;
     public GameObject requestedObject;
 
     [SerializeField] GameObject empty;
@@ -49,69 +48,124 @@ public class SpiteManager : MonoBehaviour
     [Header("UI Elements")]
     [SerializeField] Image nextPlacableObjectImage;
     [SerializeField] TMP_Text NextPlacibleObjectName;
+    [SerializeField] TMP_Text scoreAmountText;
+    [SerializeField] TMP_Text lastScoreAmount;
 
-    [Header("sprites")]
-    Sprite Grass;
 
-  
+    [SerializeField] TileParser tileParser;
 
-    public void UpdateInfo(Tile.Type type, int level)
+    void AddScore(int amount)
     {
-        title = ConnectDataToVisuals(type, level);
+        totalScore += amount;
+        scoreAmountText.text = totalScore.ToString();
+    }
+
+    public void SetLastScore(int amount)
+    {
+        lastScoreAmount.text = amount.ToString();
+    }
+
+    private void Start()
+    {
+        SetLastScore(0);
+        AddScore(0);
+        tileParser.TileUpdated += UpdateTile; // when tile gets updated update visuals
+    }
+
+    public void UpdateUI(Tile what) 
+    {
+        title = ConnectDataToVisuals(what);
         nextPlacableObjectImage.sprite = requestedObject.GetComponent<SpriteRenderer>().sprite;
         NextPlacibleObjectName.text = "Place a " + title;
     }
 
-    public string ConnectDataToVisuals(Tile.Type type, int level, bool isSpecial = false)
+    public void UpdateTile(int x, int y) // clear old and add new gameObject for tile
+    {
+        tileParser.tile[x, y].tileName = ConnectDataToVisuals(tileParser.tile[x, y]);
+            foreach (Transform child in tileParser.tile[x, y].transform)
+            {
+                GameObject.Destroy(child.gameObject);
+            }
+        Instantiate(requestedObject, tileParser.tile[x, y].transform);
+        AddScore(scoreAmount);
+    }
+
+    public void SimulateFake(int x, int y, Tile tamplate) // clear old and add new gameObject for tile
+    {
+        ConnectDataToVisuals(tamplate);
+        foreach (Transform child in tileParser.tile[x, y].transform)
+        {
+            GameObject.Destroy(child.gameObject);
+        }
+        Instantiate(requestedObject, tileParser.tile[x, y].transform);
+    }
+
+    public void ForceUpdateAll()
+    {
+        foreach(Tile t in tileParser.tile)
+        {
+            UpdateTile(t.coordinates.x, t.coordinates.y);
+        }
+    }
+
+    public string ConnectDataToVisuals(Tile tile)
     {
         string name = "Error";
-        switch (type)
+        switch (tile.tileType)
         {
             case Tile.Type.Wood:
-                switch (level)
+                switch (tile.level)
                 {
                     case 0:
                         name = "Grass";
+                        scoreAmount = 10;
                         requestedObject = grass;
                         break;
                     case 1:
                         name = "Bush";
-                        if (isSpecial)
+                        scoreAmount = 50;
+                        if (tile.specialVersion)
                             requestedObject = bushSpecial;
                         requestedObject = bush;
                         break;
                     case 2:
                         name = "Tree";
-                        if (isSpecial)
+                        scoreAmount = 100;
+                        if (tile.specialVersion)
                             requestedObject = treeSpecial;
                         requestedObject = tree;
                         break;
                     case 3:
                         name = "Hut";
-                        if (isSpecial)
+                        scoreAmount = 250;
+                        if (tile.specialVersion)
                             requestedObject = hutSpecial;
                         requestedObject = hut;
                         break;
                     case 4:
                         name = "House";
-                        if (isSpecial)
+                        scoreAmount = 500;
+                        if (tile.specialVersion)
                             requestedObject = houseSpecial;
                         requestedObject = house;
                         break;
                     case 5:
                         name = "Castle";
-                        if (isSpecial)
+                        scoreAmount = 1000;
+                        if (tile.specialVersion)
                             requestedObject = castleSpecial;
                         requestedObject = castle;
                         break;
                     case 6:
                         name = "Floating House";
-                        if (isSpecial)
+                        scoreAmount = 2500;
+                        if (tile.specialVersion)
                             requestedObject = floatingHouseSpecial;
                         requestedObject = floatingHouse;
                         break;
                     case 7:
                         name = "Floating Castle";
+                        scoreAmount = 5000;
                         requestedObject = floatingCastle;
                         break;
                     default:
@@ -120,21 +174,25 @@ public class SpiteManager : MonoBehaviour
                 break;
             case Tile.Type.Empty:
                 name = "Empty";
+                scoreAmount = 0;
                 requestedObject = empty;
                 break;
             case Tile.Type.Holy:
-                switch (level)
+                switch (tile.level)
                 {
                     case 0:
                         name = "Tombstone";
+                        scoreAmount = 20;
                         requestedObject = tombstone;
                         break;
                     case 1:
                         name = "Church";
+                        scoreAmount = 50;
                         requestedObject = church;
                         break;
                     case 2:
                         name = "Catherdral";
+                        scoreAmount = 100;
                         requestedObject = cathedral;
                         break;
                     default:
@@ -142,14 +200,16 @@ public class SpiteManager : MonoBehaviour
                 }
                 break;
             case Tile.Type.Crystal:
-                switch (level)
+                switch (tile.level)
                 {
                     case 0:
                         name = "Rock";
+                        scoreAmount = 10;
                         requestedObject = rock;
                         break;
                     case 1:
                         name = "Big rock";
+                        scoreAmount = 20;
                         requestedObject = bigRock;
                         break;
                     default:
@@ -158,17 +218,20 @@ public class SpiteManager : MonoBehaviour
                 break;
             case Tile.Type.Bear:
                 name = "Bear";
+                scoreAmount = 0;
                 requestedObject = bear;
                 break;
             case Tile.Type.Box:
-                switch (level)
+                switch (tile.level)
                 {
                     case 0:
                         name = "Box";
+                        scoreAmount = 1000;
                         requestedObject = box;
                         break;
                     case 1:
                         name = "Big box";
+                        scoreAmount = 2000;
                         requestedObject = chest;
                         break;
                     default:
@@ -178,7 +241,6 @@ public class SpiteManager : MonoBehaviour
             case Tile.Type.Robot:
                 name = "Robot";
                 requestedObject = robot;
-                level = 0;
                 break;
             default:
                 break;

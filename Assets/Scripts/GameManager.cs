@@ -2,19 +2,14 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-
-
 public class GameManager : MonoBehaviour
 {
     [SerializeField] PlacementManager placement;
+    [SerializeField] SpiteManager spiteManager;
 
-
-    long score;
-    int coins;
-    int turnsLeft;
-    int goal;
     ArrayList TilesPickChances;
-
+    BearAI bearAI;
+    public GameObject endButton;
 
     [Header("Balance")]
     [SerializeField] int grassWeight = 50;
@@ -28,45 +23,48 @@ public class GameManager : MonoBehaviour
     // Start is called before the first frame update
     void Awake()
     {
-
+        bearAI = GetComponent<BearAI>();
         TilesPickChances = new ArrayList();
         GenereteChances();
         Tile.Type nextType;
         int nextLevel;
         GetNextTile(out nextType, out nextLevel);
         placement.SetNextTile(nextType, nextLevel);
-        score = 0;
-        placement.TileGotPlaced += TurnEnd;
-        placement.TileGotSwaped += SendNextTile;
-   
+
     }
 
     private void Start()
     {
+        endButton.SetActive(false);
+        placement.OnTilePlace += TurnEnd;
         placement.GenerateMap();
     }
 
-    public void GainScore(int amount)
+    public void Restart()
     {
-        score += amount;
+        endButton.SetActive(false);
+        placement.GenerateMap();
+        spiteManager.SetLastScore(spiteManager.totalScore);
+        spiteManager.totalScore = 0;
     }
 
-
-    void TurnEnd(bool ThereIsUpgrade)
+    void TurnEnd()
     {
+        bearAI.UpdateBears();
         Tile.Type nextType;
         int nextLevel;
         GetNextTile(out nextType, out nextLevel);
         SendNextTile(nextType, nextLevel);
+        if (placement.checkIfLost())
+        {
+            endButton.SetActive(true);
+        }
     }
 
     public void SendNextTile(Tile.Type nextType, int nextLevel)
     {
         placement.SetNextTile(nextType, nextLevel);
     }
-
-
-
 
     void GenereteChances() // generates array with diffrent weights from which later random change will pick the "winner" 
     {
@@ -107,7 +105,6 @@ public class GameManager : MonoBehaviour
         }
     }
 
-
     // generate next tile type for you to place
     void GetNextTile(out Tile.Type type, out int level)
     {
@@ -115,8 +112,4 @@ public class GameManager : MonoBehaviour
         type = (Tile.Type)TilesPickChances[randomindex];
         level = (int)TilesPickChances[randomindex + 1];
     }
-
-
-
-   
 }

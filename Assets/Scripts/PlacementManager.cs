@@ -8,32 +8,31 @@ using UnityEngine;
 //  + work with input
 //  + work with visuals
 //  - crystal upgrade mechanics
-   
+
+[RequireComponent(typeof(TileParser))]
 public class PlacementManager : MonoBehaviour
 {
-    public event System.Action<bool> TileGotPlaced = delegate { };
-    public event System.Action<Tile.Type, int> TileGotSwaped = delegate { };
+    public event System.Action OnTilePlace = delegate { };
 
-    // as i am making recreation of this game, i am just cutting these in stone
-    private const int xAxis = 6;
-    private const int yAxis = 6;
-
-    public Tile[,] tile;
     bool[,] visited;
     bool tileGotPlaced = false;
 
-
-   
+    [SerializeField]
     Tile lastHoveredTile;
+    [SerializeField]
     Tile currentPlaceableObject;
 
     [SerializeField] SpiteManager spiteManager;
     [SerializeField] InputManager inputManager;
+    TileParser tileParser;
 
+    int xAxis = TileParser.XAxis;
+    int yAxis = TileParser.YAxis;
 
     private void Awake()
     {
-        tile = new Tile[xAxis, yAxis];
+
+        tileParser = GetComponent<TileParser>();
         visited = new bool[xAxis, yAxis];
         resetVisited();
         currentPlaceableObject = new Tile();
@@ -43,7 +42,7 @@ public class PlacementManager : MonoBehaviour
     {
         inputManager.OnPointerStay += HoveringOverTiles;
         inputManager.OnPointerRelease += SelectedTile;
-        UpdateAllTiles();
+
     }
 
 
@@ -54,15 +53,15 @@ public class PlacementManager : MonoBehaviour
             lastHoveredTile = hoveredTile;
             tileGotPlaced = false;
         }
-        if (hoveredTile.isEmpty() && !(hoveredTile.coordinates.x == 0 && hoveredTile.coordinates.y == 0))
+        if (hoveredTile.isEmpty() && !(hoveredTile.coordinates.x == 0 && hoveredTile.coordinates.y == 0) && currentPlaceableObject.tileType != Tile.Type.Robot)
         {
             if (hoveredTile != lastHoveredTile && !(lastHoveredTile.coordinates.x == 0 && lastHoveredTile.coordinates.y == 0))
             {
                 lastHoveredTile.ClearTile();
-                PlaceObject(lastHoveredTile, lastHoveredTile);    // place empty object back
+                spiteManager.UpdateTile(lastHoveredTile.coordinates.x, lastHoveredTile.coordinates.y);
+
                 lastHoveredTile = hoveredTile;
                 PlaceObject(lastHoveredTile, currentPlaceableObject);   // place new object on new tile
-                UpdateAllTiles();
             }
             else
             {
@@ -76,39 +75,56 @@ public class PlacementManager : MonoBehaviour
         if (selectedTile.coordinates.x == 0 && selectedTile.coordinates.y == 0) // bank part
         {
             Tile temp = new Tile();
-            temp.tileType = tile[0, 0].tileType;
-            temp.level = tile[0, 0].level;
-            temp.tileName = tile[0, 0].tileName;
-            if (tile[0, 0].tileType != Tile.Type.Empty)
+            temp.tileType = tileParser.tile[0, 0].tileType;
+            temp.level = tileParser.tile[0, 0].level;
+            temp.tileName = tileParser.tile[0, 0].tileName;
+            if (tileParser.tile[0, 0].tileType != Tile.Type.Empty)
             {
                 // swap atributes
-                PlaceObject(tile[0, 0], currentPlaceableObject, true);
-                TileGotSwaped(temp.tileType, temp.level);
-                //PlaceObject(currentPlaceableObject, temp, true);
+                PlaceObject(tileParser.tile[0, 0], currentPlaceableObject, true);
+                currentPlaceableObject.tileType = temp.tileType;
+                currentPlaceableObject.level = temp.level;
+                currentPlaceableObject.tileName = temp.tileName;
+                spiteManager.UpdateUI(temp);
             }
             else
             {
-                PlaceObject(tile[0, 0], currentPlaceableObject, true);
+                PlaceObject(tileParser.tile[0, 0], currentPlaceableObject, true);
                 tileGotPlaced = true;
-                TileGotPlaced(false);
+                OnTilePlace();
             }
+
         }
-        if (selectedTile.isEmpty() && !(selectedTile.coordinates.x == 0 && selectedTile.coordinates.y == 0))// removed bank tile
+        if (currentPlaceableObject.tileType != Tile.Type.Robot) {
+            if (selectedTile.isEmpty() && !(selectedTile.coordinates.x == 0 && selectedTile.coordinates.y == 0))// removed bank tile
         {
-            
-                
-            tileGotPlaced = true;
+                tileGotPlaced = true;
+                PlaceObject(selectedTile, currentPlaceableObject, true); // replace same object
 
-            PlaceObject(selectedTile, currentPlaceableObject, true); // replace same object
 
+                if (selectedTile.tileType != Tile.Type.Bear)
+                    CheckForUpgrades(selectedTile); // event header to let gameManager know that tile got placed also sending if upgrade is in order
+                resetVisited();
+
+
+                OnTilePlace();
+            }
+        }else if(!selectedTile.isEmpty() && !(selectedTile.coordinates.x == 0 && selectedTile.coordinates.y == 0))
+        {
             if (selectedTile.tileType != Tile.Type.Bear)
-                TileGotPlaced(CheckForUpgrades(selectedTile)); // event header to let gameManager know that tile got placed also sending if upgrade is in order
+            {
+                selectedTile.ClearTile();
+            }
             else
-                TileGotPlaced(false);
-            resetVisited();
+            {
+                selectedTile.Upgrade(); 
+                CheckForUpgrades(selectedTile); // event header to let gameManager know that tile got placed also sending if upgrade is in order
+                resetVisited();
+            }
+            tileGotPlaced = true;
+            spiteManager.UpdateTile(selectedTile.coordinates.x, selectedTile.coordinates.y);
+            OnTilePlace();
         }
-        UpdateAllTiles();
- 
     }
 
     public bool CheckForUpgrades(Tile tileToCheck)
@@ -124,20 +140,20 @@ public class PlacementManager : MonoBehaviour
 
     Tile[] getAllUpgradeTiles(int amount)
     {
-        Tile[] tiles = new Tile[amount];
+        Tile[] tilesAr = new Tile[amount];
         int temp = 0;
-        for (int i = 0; i < xAxis; i++)
+        for (int i = 0; i < 6; i++)
         {
-            for (int j = 0; j < yAxis; j++)
+            for (int j = 0; j < 6; j++)
             {
                 if(!(i == 0 && j ==0) && visited[i,j])
                 {
-                    tiles[temp] = tile[i, j];
+                    tilesAr[temp] = tileParser.tile[i, j];
                     temp++;
                 }
             }
         }
-        return tiles;
+        return tilesAr;
     }
 
     void Upgrade(Tile[] allTiles, Tile location)
@@ -147,6 +163,7 @@ public class PlacementManager : MonoBehaviour
             if (t != location)
             {
                 t.ClearTile();
+                spiteManager.UpdateTile(t.coordinates.x, t.coordinates.y);
             }
         }
         location.Upgrade();
@@ -158,74 +175,67 @@ public class PlacementManager : MonoBehaviour
         {
             location.specialVersion = false;
         }
+        spiteManager.UpdateTile(location.coordinates.x, location.coordinates.y);
         resetVisited();
         CheckForUpgrades(location);
     }
 
-    void UpdateAllTiles()
-    {
-        for (int i = 0; i < xAxis; i++)
-        {
-            for (int j = 0; j < yAxis; j++)
-            {
-                PlaceObject(tile[i, j], tile[i, j]); // just replace visual based on infomation
-            }
-        }
-    }
 
     // get amount and changes visited array of all the tile that are the same type and are adjust to each other
     int checkForSameAndMark(Tile centerTile)
     {
         
         int sameAmount = 0;
+        int x = centerTile.coordinates.x;
+        int y = centerTile.coordinates.y;
 
         #region check side tile and visit
         //left
 
-        if (centerTile.coordinates.x > 0) //if not on a border
-            if (!visited[centerTile.coordinates.x - 1, centerTile.coordinates.y] && tile[centerTile.coordinates.x - 1, centerTile.coordinates.y].tileType == centerTile.tileType)
+        if (x > 0) //if not on a border
+            if (!visited[x - 1, y] && tileParser.tile[x - 1, y].tileType == centerTile.tileType)
             {
                 
-                if (tile[centerTile.coordinates.x - 1, centerTile.coordinates.y].level == centerTile.level)
+                if (tileParser.tile[x - 1, y].level == centerTile.level)
                 {
-                    visited[centerTile.coordinates.x - 1, centerTile.coordinates.y] = true;
-                    sameAmount += 1 + checkForSameAndMark(tile[centerTile.coordinates.x - 1, centerTile.coordinates.y]);
-
+                    visited[x - 1, y] = true;
+                    sameAmount += 1 + checkForSameAndMark(tileParser.tile[x - 1, y]);
+                   
                 }
             }
 
         //right
-        if (centerTile.coordinates.x < xAxis - 1) //if not on a border
-            if (!visited[centerTile.coordinates.x + 1, centerTile.coordinates.y] && tile[centerTile.coordinates.x + 1, centerTile.coordinates.y].tileType == centerTile.tileType)
+        if (x < xAxis - 1) //if not on a border
+            if (!visited[x + 1, y] && tileParser.tile[x + 1, y].tileType == centerTile.tileType)
             {
-                if (tile[centerTile.coordinates.x + 1, centerTile.coordinates.y].level == centerTile.level)
+                if (tileParser.tile[x + 1, y].level == centerTile.level)
                 {
-                    visited[centerTile.coordinates.x + 1, centerTile.coordinates.y] = true;
-                    sameAmount += 1 + checkForSameAndMark(tile[centerTile.coordinates.x + 1, centerTile.coordinates.y]);
+                    visited[x + 1, y] = true;
+                    sameAmount += 1 + checkForSameAndMark(tileParser.tile[x + 1, y]);
 
                 }
             }
         
         //top
-        if (centerTile.coordinates.y > 0) //if not on a border
-            if (!visited[centerTile.coordinates.x, centerTile.coordinates.y - 1] && tile[centerTile.coordinates.x, centerTile.coordinates.y - 1].tileType == centerTile.tileType)
+        if (y > 0) //if not on a border
+            if (!visited[x, y - 1] && tileParser.tile[x, y - 1].tileType == centerTile.tileType)
             {
-                if (tile[centerTile.coordinates.x, centerTile.coordinates.y - 1].level == centerTile.level)
+                if (tileParser.tile[x, y - 1].level == centerTile.level)
                 {
-                    visited[centerTile.coordinates.x, centerTile.coordinates.y - 1] = true;
-                    sameAmount += 1 + checkForSameAndMark(tile[centerTile.coordinates.x, centerTile.coordinates.y - 1]);
+                    visited[x, y - 1] = true;
+                    sameAmount += 1 + checkForSameAndMark(tileParser.tile[x, y - 1]);
 
                 }
             }
 
         //bottom
-        if (centerTile.coordinates.y < yAxis - 1) //if not on a border
-            if (!visited[centerTile.coordinates.x, centerTile.coordinates.y + 1] && tile[centerTile.coordinates.x, centerTile.coordinates.y + 1].tileType == centerTile.tileType)
+        if (y < yAxis - 1) //if not on a border
+            if (!visited[x, y + 1] && tileParser.tile[x, y + 1].tileType == centerTile.tileType)
             {
-                if (tile[centerTile.coordinates.x, centerTile.coordinates.y + 1].level == centerTile.level)
+                if (tileParser.tile[x, y + 1].level == centerTile.level)
                 {
-                    visited[centerTile.coordinates.x, centerTile.coordinates.y + 1] = true;
-                    sameAmount += 1 + checkForSameAndMark(tile[centerTile.coordinates.x, centerTile.coordinates.y + 1]);
+                    visited[x, y + 1] = true;
+                    sameAmount += 1 + checkForSameAndMark(tileParser.tile[x, y + 1]);
                    
                 }
             }                             
@@ -238,7 +248,7 @@ public class PlacementManager : MonoBehaviour
     }
 
 
-    void resetVisited()
+    public void resetVisited()
     {
         for (int i = 0; i < xAxis; i++)
         {
@@ -253,45 +263,58 @@ public class PlacementManager : MonoBehaviour
 
     public void SetNextTile(Tile.Type furuteType, int futureLevel)
     {
+        spiteManager.ForceUpdateAll();
         currentPlaceableObject.tileType = furuteType;
         currentPlaceableObject.level = futureLevel;
-        spiteManager.UpdateInfo(furuteType, futureLevel);
+        spiteManager.UpdateUI(currentPlaceableObject);
     }
+
+
+
 
     void PlaceObject(Tile where, Tile what, bool leave = false)
     {
-        spiteManager.ConnectDataToVisuals(what.tileType, what.level);
         if (leave)
-        {
-            tile[where.coordinates.x,where.coordinates.y].level = what.level;
-            tile[where.coordinates.x, where.coordinates.y].tileType = what.tileType;
-            tile[where.coordinates.x, where.coordinates.y].tileName = what.tileName;
-        }
-        // destroy all children and attach new one 
-        if(where.transform)                                                             
-            foreach (Transform child in where.transform)
-            {
-                GameObject.Destroy(child.gameObject);
-            }
-        Instantiate(spiteManager.requestedObject, where.transform);
+            tileParser.SetTile(where.coordinates.x, where.coordinates.y, what.tileType, what.level, what.tileName);
+        else
+            spiteManager.SimulateFake(where.coordinates.x, where.coordinates.y, what);
     }
+
 
     public void GenerateMap()
     {
-
         for (int i = 0; i < xAxis; i++)
         {
             for (int j = 0; j < yAxis; j++)
             {
-                if ((int)Random.Range(0f, 35f) % 4 == 0) // 
+                if (!(i == 0 && j == 0))
                 {
-                    PlaceObject(tile[i, j], currentPlaceableObject, true);
-                    TileGotPlaced(false);
+                    if ((int)Random.Range(0f, 35f) % 4 == 0) // 
+                    {
+                        if (currentPlaceableObject.tileType == Tile.Type.Robot)
+                            currentPlaceableObject.tileType = Tile.Type.Wood;
+                        PlaceObject(tileParser.tile[i, j], currentPlaceableObject, true);
+                        OnTilePlace();
+                    }
+                    else
+                        tileParser.tile[i, j].ClearTile();
                 }
             }
         }
-        UpdateAllTiles();
+        tileParser.tile[0, 0].ClearTile();
+        spiteManager.ForceUpdateAll();
     }
 
-    
+    public bool checkIfLost()
+    {
+        for (int i = 0; i < xAxis; i++)
+        {
+            for (int j = 0; j < yAxis; j++)
+            {
+                if (tileParser.tile[i, j].tileType == Tile.Type.Empty) // if there is a spot you cannot lose
+                    return false;
+            }
+        }
+        return true;
+    }
 }

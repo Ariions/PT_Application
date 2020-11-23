@@ -7,6 +7,7 @@ public class InputManager : MonoBehaviour
 {
 
     bool isMobile;
+    public bool menuIsOpen = false;
 
     public event System.Action<Tile> OnPointerStay = delegate { };
     public event System.Action<Tile> OnPointerRelease = delegate { };
@@ -24,50 +25,51 @@ public class InputManager : MonoBehaviour
         }
     }
 
-    private void Start()
-    {
-        
-    }
-
     void Update()
     {
-        if (isMobile)
+        if (!menuIsOpen) // menu is open no raycasts are used to further the game
         {
-            if (Input.touchCount > 0 && Input.touchCount < 2)
+            if (isMobile)
             {
-                /*
-                 * this might be better to consider later
-                 *for (int i = 0; i < Input.touchCount; ++i)
-        {   
-                 */
-                if (Input.touches[0].phase == TouchPhase.Moved)
+                if (Input.touchCount > 0 && Input.touchCount < 2)
                 {
-                    if(checkTouch(Input.GetTouch(0).position) != null)
-                        OnPointerStay(checkTouch(Input.GetTouch(0).position));
+                    /*
+                     * this might be better to consider later
+                     *for (int i = 0; i < Input.touchCount; ++i)
+            {   
+                     */
+                    if (Input.touches[0].phase == TouchPhase.Moved)
+                    {
+                        if (checkTouch(Input.GetTouch(0).position) != null)
+                            OnPointerStay(checkTouch(Input.GetTouch(0).position));
+                    }
+
+                    if (Input.touches[0].phase == TouchPhase.Ended)
+                    {
+                        if (checkTouch(Input.GetTouch(0).position) != null)
+                            OnPointerRelease(checkTouch(Input.GetTouch(0).position));
+                    }
+                }
+            }
+            else
+            {
+                if (Input.GetMouseButton(0))
+                {
+                    if (checkTouch(Input.mousePosition) != null)
+                        OnPointerStay(checkTouch(Input.mousePosition));
                 }
 
-                if (Input.touches[0].phase == TouchPhase.Ended)
+                if (Input.GetMouseButtonUp(0))
                 {
-                    if (checkTouch(Input.GetTouch(0).position) != null)
-                        OnPointerRelease(checkTouch(Input.GetTouch(0).position));
+                    if (checkTouch(Input.mousePosition) != null)
+                        OnPointerRelease(checkTouch(Input.mousePosition));
                 }
             }
         }
-        else
+        if (Input.GetKeyDown(KeyCode.Escape))
         {
-            if (Input.GetMouseButton(0))
-            {
-                if (checkTouch(Input.mousePosition) != null)
-                    OnPointerStay(checkTouch(Input.mousePosition));
-            }
-
-            if (Input.GetMouseButtonUp(0))
-            {
-                if (checkTouch(Input.mousePosition) != null)
-                    OnPointerRelease(checkTouch(Input.mousePosition));
-            }
+            Application.Quit();
         }
-
         
     }
     
