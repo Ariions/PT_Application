@@ -12,6 +12,7 @@ using UnityEngine;
 public class PlacementManager : MonoBehaviour
 {
     public event System.Action<bool> TileGotPlaced = delegate { };
+    public event System.Action<Tile.Type, int> TileGotSwaped = delegate { };
 
     // as i am making recreation of this game, i am just cutting these in stone
     private const int xAxis = 6;
@@ -22,7 +23,7 @@ public class PlacementManager : MonoBehaviour
     bool tileGotPlaced = false;
 
 
-    [SerializeField]
+   
     Tile lastHoveredTile;
     Tile currentPlaceableObject;
 
@@ -35,9 +36,7 @@ public class PlacementManager : MonoBehaviour
         tile = new Tile[xAxis, yAxis];
         visited = new bool[xAxis, yAxis];
         resetVisited();
-
         currentPlaceableObject = new Tile();
-
     }
     
     private void Start()
@@ -50,38 +49,54 @@ public class PlacementManager : MonoBehaviour
 
     void HoveringOverTiles(Tile hoveredTile) // get called every frame while mouse/ touch is down/active
     {
-        if (hoveredTile.coordinates.x == 0 && hoveredTile.coordinates.y == 0)
+        if (lastHoveredTile == null || tileGotPlaced)
         {
-            // bank
+            lastHoveredTile = hoveredTile;
+            tileGotPlaced = false;
         }
-        else
+        if (hoveredTile.isEmpty() && !(hoveredTile.coordinates.x == 0 && hoveredTile.coordinates.y == 0))
         {
-            if (lastHoveredTile == null || tileGotPlaced)
+            if (hoveredTile != lastHoveredTile && !(lastHoveredTile.coordinates.x == 0 && lastHoveredTile.coordinates.y == 0))
             {
+                lastHoveredTile.ClearTile();
+                PlaceObject(lastHoveredTile, lastHoveredTile);    // place empty object back
                 lastHoveredTile = hoveredTile;
-                tileGotPlaced = false;
+                PlaceObject(lastHoveredTile, currentPlaceableObject);   // place new object on new tile
+                UpdateAllTiles();
             }
-            if (hoveredTile.isEmpty())
+            else
             {
-                if (hoveredTile != lastHoveredTile)
-                {
-                    lastHoveredTile.ClearTile();
-                    PlaceObject(lastHoveredTile, lastHoveredTile);    // place empty object back
-                    lastHoveredTile = hoveredTile;
-                    PlaceObject(lastHoveredTile, currentPlaceableObject);   // place new object on new tile
-                }
-                else
-                {
-                    PlaceObject(lastHoveredTile, currentPlaceableObject); // replace same object
-                }
+                PlaceObject(lastHoveredTile, currentPlaceableObject); // replace same object
             }
         }
     }
 
     void SelectedTile(Tile selectedTile) // gets called the frame when moese click or touch het realesed
     {
-        if (selectedTile.isEmpty() && !(selectedTile.coordinates.x == 0 && selectedTile.coordinates.y == 0))// removed bank from tiles
+        if (selectedTile.coordinates.x == 0 && selectedTile.coordinates.y == 0) // bank part
         {
+            Tile temp = new Tile();
+            temp.tileType = tile[0, 0].tileType;
+            temp.level = tile[0, 0].level;
+            temp.tileName = tile[0, 0].tileName;
+            if (tile[0, 0].tileType != Tile.Type.Empty)
+            {
+                // swap atributes
+                PlaceObject(tile[0, 0], currentPlaceableObject, true);
+                TileGotSwaped(temp.tileType, temp.level);
+                //PlaceObject(currentPlaceableObject, temp, true);
+            }
+            else
+            {
+                PlaceObject(tile[0, 0], currentPlaceableObject, true);
+                tileGotPlaced = true;
+                TileGotPlaced(false);
+            }
+        }
+        if (selectedTile.isEmpty() && !(selectedTile.coordinates.x == 0 && selectedTile.coordinates.y == 0))// removed bank tile
+        {
+            
+                
             tileGotPlaced = true;
 
             PlaceObject(selectedTile, currentPlaceableObject, true); // replace same object
@@ -92,8 +107,8 @@ public class PlacementManager : MonoBehaviour
                 TileGotPlaced(false);
             resetVisited();
         }
-
         UpdateAllTiles();
+ 
     }
 
     public bool CheckForUpgrades(Tile tileToCheck)
@@ -143,6 +158,7 @@ public class PlacementManager : MonoBehaviour
         {
             location.specialVersion = false;
         }
+        resetVisited();
         CheckForUpgrades(location);
     }
 
@@ -157,24 +173,15 @@ public class PlacementManager : MonoBehaviour
         }
     }
 
-    public void CreateReference(Tile tileref)
-    {
-        tile[tileref.coordinates.x , tileref.coordinates.y] = tileref;
-    }
-
-    void placeTile(Tile.Coordinates coordinates, Tile.Type tileType)
-    {
-        tile[coordinates.x , coordinates.y].tileType = tileType;
-    }
-
     // get amount and changes visited array of all the tile that are the same type and are adjust to each other
     int checkForSameAndMark(Tile centerTile)
     {
         
         int sameAmount = 0;
+
         #region check side tile and visit
         //left
-        
+
         if (centerTile.coordinates.x > 0) //if not on a border
             if (!visited[centerTile.coordinates.x - 1, centerTile.coordinates.y] && tile[centerTile.coordinates.x - 1, centerTile.coordinates.y].tileType == centerTile.tileType)
             {
@@ -256,20 +263,35 @@ public class PlacementManager : MonoBehaviour
         spiteManager.ConnectDataToVisuals(what.tileType, what.level);
         if (leave)
         {
-            where.level = what.level;
-            where.tileType = what.tileType;
-            where.tileName = what.tileName;
+            tile[where.coordinates.x,where.coordinates.y].level = what.level;
+            tile[where.coordinates.x, where.coordinates.y].tileType = what.tileType;
+            tile[where.coordinates.x, where.coordinates.y].tileName = what.tileName;
         }
         // destroy all children and attach new one 
-        foreach (Transform child in where.transform)
-        {
-            GameObject.Destroy(child.gameObject);
-        }
+        if(where.transform)                                                             
+            foreach (Transform child in where.transform)
+            {
+                GameObject.Destroy(child.gameObject);
+            }
         Instantiate(spiteManager.requestedObject, where.transform);
     }
 
+    public void GenerateMap()
+    {
+
+        for (int i = 0; i < xAxis; i++)
+        {
+            for (int j = 0; j < yAxis; j++)
+            {
+                if ((int)Random.Range(0f, 35f) % 4 == 0) // 
+                {
+                    PlaceObject(tile[i, j], currentPlaceableObject, true);
+                    TileGotPlaced(false);
+                }
+            }
+        }
+        UpdateAllTiles();
+    }
 
     
-
-
 }

@@ -2986,6 +2986,53 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 956125534}
   m_CullTransparentMesh: 1
+--- !u!1 &985840667
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 985840668}
+  - component: {fileID: 985840669}
+  m_Layer: 0
+  m_Name: ReferenceTile
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &985840668
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 985840667}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.99079573, y: -2.6907017, z: -0.903628}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 7
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &985840669
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 985840667}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 222f164317f306340a6c3e02e542cd74, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  tileName: 
+  specialVersion: 0
+  level: 0
+  tileType: 0
 --- !u!1 &1006134268
 GameObject:
   m_ObjectHideFlags: 0
@@ -3115,7 +3162,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cb75ab7ce70e836438da649c8f163c39, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  lastHoveredTile: {fileID: 0}
   spiteManager: {fileID: 1505677365}
   inputManager: {fileID: 1505677367}
 --- !u!1 &1053142861
@@ -13128,7 +13174,7 @@ MonoBehaviour:
   treeWeight: 5
   hutWeight: 1
   crystalWeight: 3
-  robotWeight: 0
+  robotWeight: 10
 --- !u!114 &1505677365
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13141,7 +13187,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b231028adb93e2c4e963ed38dce1c828, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  requestedObject: {fileID: 0}
+  requestedObject: {fileID: 985840667}
   empty: {fileID: 2177146580644380005, guid: 4c5a061e90300d149bfb54794c7ebc3f, type: 3}
   grass: {fileID: 6300950382745254351, guid: 6faaa6e566fa2b24b86a2e1867d0ef20, type: 3}
   bush: {fileID: 2310700569122017716, guid: d8b9d7012cf93a4428213db143c55690, type: 3}
@@ -13158,14 +13204,14 @@ MonoBehaviour:
   floatingHouseSpecial: {fileID: 0}
   floatingCastle: {fileID: 0}
   bear: {fileID: 7165294060206494759, guid: 4e004af1027e2bb488f71e064904cbe6, type: 3}
-  tombstone: {fileID: 0}
-  church: {fileID: 0}
-  cathedral: {fileID: 0}
+  tombstone: {fileID: 2312830826705435383, guid: dfbb2213fbba1ff409fc67617309a92e, type: 3}
+  church: {fileID: 469023416774963887, guid: c83b3271cd430874d89605d43f6508cb, type: 3}
+  cathedral: {fileID: 2017496100641253837, guid: 03ca0f288b18dd645973c6de77cbf3ef, type: 3}
   box: {fileID: 5701130418307221313, guid: c4048648b1aa04c418474dd4e276cc9b, type: 3}
   chest: {fileID: 4945384237295314796, guid: aaeac8c626bccb24b949c4690cdb426c, type: 3}
   rock: {fileID: 2650830806367509651, guid: f18053bc828a5fa44a26d1215ab6d2b7, type: 3}
   bigRock: {fileID: 4019242095258888384, guid: 8563586fa4a7b8e459f51b1722e919ba, type: 3}
-  robot: {fileID: 0}
+  robot: {fileID: 635497549875690375, guid: 61336ee44e954ce44ac4aa1ab00de1d4, type: 3}
   nextPlacableObjectImage: {fileID: 819576014}
   NextPlacibleObjectName: {fileID: 1398699779}
 --- !u!4 &1505677366

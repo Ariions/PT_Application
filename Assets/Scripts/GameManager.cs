@@ -37,7 +37,13 @@ public class GameManager : MonoBehaviour
         placement.SetNextTile(nextType, nextLevel);
         score = 0;
         placement.TileGotPlaced += TurnEnd;
+        placement.TileGotSwaped += SendNextTile;
    
+    }
+
+    private void Start()
+    {
+        placement.GenerateMap();
     }
 
     public void GainScore(int amount)
@@ -51,18 +57,15 @@ public class GameManager : MonoBehaviour
         Tile.Type nextType;
         int nextLevel;
         GetNextTile(out nextType, out nextLevel);
+        SendNextTile(nextType, nextLevel);
+    }
+
+    public void SendNextTile(Tile.Type nextType, int nextLevel)
+    {
         placement.SetNextTile(nextType, nextLevel);
     }
 
-    void SaveGame()
-    {
 
-    }
-
-    void LoadGame()
-    {
-
-    }
 
 
     void GenereteChances() // generates array with diffrent weights from which later random change will pick the "winner" 

@@ -2,8 +2,6 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-// TODO: Move dictionary to file
-
 public class Tile : MonoBehaviour
 {
     public enum Type
@@ -25,17 +23,11 @@ public class Tile : MonoBehaviour
 
 
     public Coordinates coordinates;
-
     public string tileName;
     public bool specialVersion = false;
     public int level = 0;   // building level that is on top of this tile                    
     public Type tileType = Type.Empty;
 
-
-    private void Start()
-    {
-       // tileName = "Empty";
-    }
 
     // clear any buildings from the tile and sets building level to 0
     public void ClearTile() 
@@ -55,5 +47,4 @@ public class Tile : MonoBehaviour
             return  true;
         return false;
     }
-    ///test 
 }
